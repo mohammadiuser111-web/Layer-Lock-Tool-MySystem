@@ -18,7 +18,6 @@ internal static class NativeConstants
     public const uint SmtoAbortIfHung = 0x0002;
     public const uint SmtoBlock = 0x0001;
 
-    public const uint EventSystemMenuStart = 0x0004;
     public const uint EventSystemMenuEnd = 0x0005;
     public const uint EventObjectInvoked = 0x8013;
     public const int ObjectIdSystemMenu = -1;

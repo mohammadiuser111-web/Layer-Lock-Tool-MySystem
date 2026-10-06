@@ -42,23 +42,7 @@ internal sealed class SystemMenuExtension : IDisposable
         _disposed = true;
         RemoveActiveItem();
 
-        if (_mouseHook != nint.Zero)
-        {
-            _ = NativeMethods.UnhookWindowsHookEx(_mouseHook);
-            _mouseHook = nint.Zero;
-        }
-
-        if (_menuEventHook != nint.Zero)
-        {
-            _ = NativeMethods.UnhookWinEvent(_menuEventHook);
-            _menuEventHook = nint.Zero;
-        }
-
-        if (_invokeEventHook != nint.Zero)
-        {
-            _ = NativeMethods.UnhookWinEvent(_invokeEventHook);
-            _invokeEventHook = nint.Zero;
-        }
+        UninstallHooks();
     }
 
     private void InstallHooks()
@@ -71,7 +55,7 @@ internal sealed class SystemMenuExtension : IDisposable
             0);
 
         _menuEventHook = NativeMethods.SetWinEventHook(
-            NativeConstants.EventSystemMenuStart,
+            NativeConstants.EventSystemMenuEnd,
             NativeConstants.EventSystemMenuEnd,
             nint.Zero,
             _menuEventProcedure,
@@ -90,7 +74,30 @@ internal sealed class SystemMenuExtension : IDisposable
 
         if (_mouseHook == nint.Zero || _menuEventHook == nint.Zero || _invokeEventHook == nint.Zero)
         {
-            throw new Win32Exception(Marshal.GetLastWin32Error(), "Unable to install Windows event hooks.");
+            int error = Marshal.GetLastWin32Error();
+            UninstallHooks();
+            throw new Win32Exception(error, "Unable to install Windows event hooks.");
+        }
+    }
+
+    private void UninstallHooks()
+    {
+        if (_mouseHook != nint.Zero)
+        {
+            _ = NativeMethods.UnhookWindowsHookEx(_mouseHook);
+            _mouseHook = nint.Zero;
+        }
+
+        if (_menuEventHook != nint.Zero)
+        {
+            _ = NativeMethods.UnhookWinEvent(_menuEventHook);
+            _menuEventHook = nint.Zero;
+        }
+
+        if (_invokeEventHook != nint.Zero)
+        {
+            _ = NativeMethods.UnhookWinEvent(_invokeEventHook);
+            _invokeEventHook = nint.Zero;
         }
     }
 
