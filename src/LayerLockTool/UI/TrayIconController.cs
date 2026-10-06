@@ -145,7 +145,7 @@ internal sealed class TrayIconController : IDisposable
         }
     }
 
-    private void BuildMenu(nint menu, IDictionary<uint, nint> windowCommands)
+    private void BuildMenu(nint menu, Dictionary<uint, nint> windowCommands)
     {
         bool activeLocked = _lastForegroundWindow != nint.Zero && _lockManager.IsLocked(_lastForegroundWindow);
         string toggleText = activeLocked ? AppStrings.UnlockActiveWindow : AppStrings.LockActiveWindow;
