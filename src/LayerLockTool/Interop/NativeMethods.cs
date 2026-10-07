@@ -75,6 +75,12 @@ internal static partial class NativeMethods
     [DllImport("user32.dll")]
     internal static extern uint GetMenuState(nint menu, uint item, uint flags);
 
+    [DllImport("user32.dll")]
+    internal static extern int MenuItemFromPoint(nint window, nint menu, NativePoint point);
+
+    [DllImport("user32.dll")]
+    internal static extern uint GetMenuItemID(nint menu, int position);
+
     [DllImport("user32.dll", SetLastError = true)]
     internal static extern nint SetWinEventHook(
         uint eventMin,

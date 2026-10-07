@@ -19,6 +19,16 @@ internal struct LowLevelMouseData
     public nuint ExtraInfo;
 }
 
+[StructLayout(LayoutKind.Sequential)]
+internal struct LowLevelKeyboardData
+{
+    public uint VirtualKeyCode;
+    public uint ScanCode;
+    public uint Flags;
+    public uint Time;
+    public nuint ExtraInfo;
+}
+
 [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
 internal struct MenuItemInfo
 {

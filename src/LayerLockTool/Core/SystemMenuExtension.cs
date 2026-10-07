@@ -13,9 +13,11 @@ internal sealed class SystemMenuExtension : IDisposable
     private readonly MessageWindow _messageWindow;
     private readonly WindowLockManager _lockManager;
     private readonly HookProcedure _mouseProcedure;
+    private readonly HookProcedure _keyboardProcedure;
     private readonly WinEventProcedure _menuEventProcedure;
     private readonly WinEventProcedure _invokeEventProcedure;
     private nint _mouseHook;
+    private nint _keyboardHook;
     private nint _menuEventHook;
     private nint _invokeEventHook;
     private ActiveMenu? _activeMenu;
@@ -26,6 +28,7 @@ internal sealed class SystemMenuExtension : IDisposable
         _messageWindow = messageWindow;
         _lockManager = lockManager;
         _mouseProcedure = OnMouseHook;
+        _keyboardProcedure = OnKeyboardHook;
         _menuEventProcedure = OnMenuEvent;
         _invokeEventProcedure = OnInvokeEvent;
 
@@ -54,6 +57,12 @@ internal sealed class SystemMenuExtension : IDisposable
             module,
             0);
 
+        _keyboardHook = NativeMethods.SetWindowsHookEx(
+            NativeConstants.WhKeyboardLowLevel,
+            _keyboardProcedure,
+            module,
+            0);
+
         _menuEventHook = NativeMethods.SetWinEventHook(
             NativeConstants.EventSystemMenuEnd,
             NativeConstants.EventSystemMenuEnd,
@@ -72,7 +81,10 @@ internal sealed class SystemMenuExtension : IDisposable
             0,
             NativeConstants.WinEventOutOfContext | NativeConstants.WinEventSkipOwnProcess);
 
-        if (_mouseHook == nint.Zero || _menuEventHook == nint.Zero || _invokeEventHook == nint.Zero)
+        if (_mouseHook == nint.Zero ||
+            _keyboardHook == nint.Zero ||
+            _menuEventHook == nint.Zero ||
+            _invokeEventHook == nint.Zero)
         {
             int error = Marshal.GetLastWin32Error();
             UninstallHooks();
@@ -86,6 +98,12 @@ internal sealed class SystemMenuExtension : IDisposable
         {
             _ = NativeMethods.UnhookWindowsHookEx(_mouseHook);
             _mouseHook = nint.Zero;
+        }
+
+        if (_keyboardHook != nint.Zero)
+        {
+            _ = NativeMethods.UnhookWindowsHookEx(_keyboardHook);
+            _keyboardHook = nint.Zero;
         }
 
         if (_menuEventHook != nint.Zero)
@@ -103,17 +121,45 @@ internal sealed class SystemMenuExtension : IDisposable
 
     private nint OnMouseHook(int code, nuint message, nint data)
     {
-        if (code >= 0 && message == NativeConstants.WmRightButtonUp)
+        if (code >= 0 &&
+            message is NativeConstants.WmLeftButtonUp or NativeConstants.WmRightButtonUp)
         {
             LowLevelMouseData mouseData = Marshal.PtrToStructure<LowLevelMouseData>(data);
-            nint target = WindowLocator.FindCaptionWindow(mouseData.Point);
-            if (target != nint.Zero)
+            if (!TryQueueMouseSelection(mouseData.Point) && message == NativeConstants.WmRightButtonUp)
             {
-                AddTemporaryMenuItem(target);
+                nint target = WindowLocator.FindCaptionWindow(mouseData.Point);
+                if (target != nint.Zero)
+                {
+                    AddTemporaryMenuItem(target);
+                }
             }
         }
 
         return NativeMethods.CallNextHookEx(_mouseHook, code, message, data);
+    }
+
+    private nint OnKeyboardHook(int code, nuint message, nint data)
+    {
+        if (code >= 0 &&
+            message is NativeConstants.WmKeyDown or NativeConstants.WmSystemKeyDown &&
+            _activeMenu is not null)
+        {
+            LowLevelKeyboardData keyboardData = Marshal.PtrToStructure<LowLevelKeyboardData>(data);
+            if (keyboardData.VirtualKeyCode == NativeConstants.VirtualKeyEnter)
+            {
+                uint state = NativeMethods.GetMenuState(
+                    _activeMenu.Menu,
+                    unchecked((uint)_activeMenu.CommandId),
+                    NativeConstants.MenuByCommand);
+
+                if (state != uint.MaxValue && (state & NativeConstants.MenuStateHighlighted) != 0)
+                {
+                    QueueToggle(_activeMenu);
+                }
+            }
+        }
+
+        return NativeMethods.CallNextHookEx(_keyboardHook, code, message, data);
     }
 
     private void OnMenuEvent(
@@ -163,8 +209,38 @@ internal sealed class SystemMenuExtension : IDisposable
             objectId == NativeConstants.ObjectIdSystemMenu &&
             childId == active.CommandId)
         {
-            _messageWindow.PostToggle(active.Window);
+            QueueToggle(active);
         }
+    }
+
+    private bool TryQueueMouseSelection(NativePoint point)
+    {
+        ActiveMenu? active = _activeMenu;
+        if (active is null)
+        {
+            return false;
+        }
+
+        int position = NativeMethods.MenuItemFromPoint(nint.Zero, active.Menu, point);
+        if (position < 0 ||
+            NativeMethods.GetMenuItemID(active.Menu, position) != unchecked((uint)active.CommandId))
+        {
+            return false;
+        }
+
+        QueueToggle(active);
+        return true;
+    }
+
+    private void QueueToggle(ActiveMenu active)
+    {
+        if (active.ToggleQueued)
+        {
+            return;
+        }
+
+        active.ToggleQueued = true;
+        _messageWindow.PostToggle(active.Window);
     }
 
     private void AddTemporaryMenuItem(nint window)
@@ -227,5 +303,8 @@ internal sealed class SystemMenuExtension : IDisposable
         }
     }
 
-    private sealed record ActiveMenu(nint Window, nint Menu, int CommandId);
+    private sealed record ActiveMenu(nint Window, nint Menu, int CommandId)
+    {
+        public bool ToggleQueued { get; set; }
+    }
 }

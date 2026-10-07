@@ -10,7 +10,7 @@
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationIcon>Assets\App.ico</ApplicationIcon>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Authors>MySystem</Authors>
     <Product>Layer Lock Tool - MySystem</Product>
     <Description>Native Windows 11 layer locking for any top-level window.</Description>

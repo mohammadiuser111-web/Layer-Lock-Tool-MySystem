@@ -2,7 +2,11 @@ namespace LayerLockTool.Interop;
 
 internal static class NativeConstants
 {
+    public const int WhKeyboardLowLevel = 13;
     public const int WhMouseLowLevel = 14;
+    public const uint WmKeyDown = 0x0100;
+    public const uint WmSystemKeyDown = 0x0104;
+    public const uint WmLeftButtonUp = 0x0202;
     public const uint WmRightButtonUp = 0x0205;
     public const uint WmHotKey = 0x0312;
     public const uint WmNull = 0x0000;
@@ -29,6 +33,7 @@ internal static class NativeConstants
     public const uint MenuItemString = 0x00000040;
     public const uint MenuStateChecked = 0x00000008;
     public const uint MenuStateEnabled = 0x00000000;
+    public const uint MenuStateHighlighted = 0x00000080;
     public const uint MenuByCommand = 0x00000000;
     public const uint MenuByPosition = 0x00000400;
     public const uint MenuString = 0x00000000;
@@ -48,6 +53,7 @@ internal static class NativeConstants
     public const uint ModControl = 0x0002;
     public const uint ModWin = 0x0008;
     public const uint ModNoRepeat = 0x4000;
+    public const uint VirtualKeyEnter = 0x0D;
     public const uint VirtualKeySpace = 0x20;
 
     public const uint TrackRightButton = 0x0002;
